@@ -1,9 +1,11 @@
 include nall/Makefile
+include config.mk
+
 ui := qt
 
 # compiler
-c       := $(compiler) -std=gnu99
-cpp     := $(subst cc,++,$(compiler)) -std=gnu++0x
+CC      += -std=gnu99
+CXX     += -std=gnu++0x
 flags   := -g -I.
 link    := -lsnes
 objects :=
@@ -25,9 +27,9 @@ endif
 compile = \
   $(strip \
     $(if $(filter %.c,$<), \
-      $(c) $(flags) $1 -c $< -o $@, \
+      $(CC) $(flags) $1 -c $< -o $@, \
       $(if $(filter %.cpp,$<), \
-        $(cpp) $(flags) $1 -c $< -o $@ \
+        $(CXX) $(flags) $1 -c $< -o $@ \
       ) \
     ) \
   )
@@ -35,6 +37,7 @@ compile = \
 %.o: $<; $(call compile)
 
 all: build;
+
 
 qtlibs := $(strip QtCore QtGui $(if $(findstring osx,$(platform)),QtOpenGL))
 include $(ui)/template/Makefile
@@ -44,6 +47,8 @@ ui_objects += ruby
 ui_objects += $(if $(call streq,$(platform),win),resource)
 link += $(qtlib)
 
+
+
 headers := $(call rwildcard,$(ui)/,%.hpp)
 moc_headers := $(call rwildcard,nall/qt/,%.moc.hpp) $(call rwildcard,$(ui)/,%.moc.hpp)
 moc_objects := $(foreach f,$(moc_headers),obj/$(notdir $(patsubst %.moc.hpp,%.moc,$f)))
@@ -51,9 +56,39 @@ qt_compile = $(call compile,-Iobj $(qtinc))
 
 # platform
 ifeq ($(platform),x)
-  ruby := video.glx video.xv video.qtraster video.sdl
-  ruby += audio.alsa audio.openal audio.oss audio.pulseaudio audio.pulseaudiosimple audio.ao
-  ruby += input.sdl input.x
+
+  ruby := qtraster input.x
+
+ifeq ($(HAVE_GLX),1)
+  ruby += video.glx
+endif
+ifeq ($(HAVE_XV),1)
+  ruby += video.xv
+endif
+ifeq ($(HAVE_SDL),1)
+  ruby += video.sdl
+endif
+ifeq ($(HAVE_ALSA),1)
+  ruby += audio.alsa
+endif
+ifeq ($(HAVE_AL),1)
+  ruby += audio.openal
+endif
+ifeq ($(HAVE_OSS),1)
+  ruby += audio.oss
+endif
+ifeq ($(HAVE_PULSE),1)
+  ruby += audio.pulseaudio
+endif
+ifeq ($(HAVE_PULSE_SIMPLE),1)
+  ruby += audio.pulseaudiosimple
+endif
+ifeq ($(HAVE_AO),1)
+  ruby += audio.ao
+endif
+ifeq ($(HAVE_SDL),1)
+  ruby += input.sdl
+endif
 
   link += $(if $(findstring audio.openal,$(ruby)),-lopenal)
 else ifeq ($(platform),osx)
@@ -115,7 +150,7 @@ obj/ui-settings.o: $(ui)/settings/settings.cpp $(headers) $(wildcard $(ui)/setti
 obj/ui-state.o: $(ui)/state/state.cpp $(headers) $(wildcard $(ui)/state/*.cpp); $(qt_compile)
 obj/ui-tools.o: $(ui)/tools/tools.cpp $(headers) $(wildcard $(ui)/tools/*.cpp); $(qt_compile)
 
-obj/ruby.o: ruby/ruby.cpp $(call rwildcard,ruby/*)
+obj/ruby.o: ruby/ruby.cpp $(call rwildcard,ruby/*) config.mk
 	$(call compile,$(rubydef) $(rubyflags))
 
 obj/resource.rcc: $(ui)/resource/resource.qrc $(ui)/data/*
@@ -135,19 +170,22 @@ ui_clean:
 objects := $(patsubst %,obj/%.o,$(objects))
 
 # targets
-build: ui_build $(objects)
+build: ui_build $(objects) config.mk
 ifeq ($(platform),osx)
 	test -d ../bsnes.app || mkdir -p ../bsnes.app/Contents/MacOS
-	$(strip $(cpp) -o ../bsnes.app/Contents/MacOS/bsnes $(objects) $(link))
+	$(strip $(CXX) -o ../bsnes.app/Contents/MacOS/bsnes $(objects) $(link) $(LDFLAGS))
 else
-	$(strip $(cpp) -o out/bsnes $(objects) $(link))
+	$(strip $(CXX) -o out/bsnes $(objects) $(link) $(LDFLAGS))
 endif
+
+config.mk: configure qb/*
+	@echo Rebuild config.mk with ./configure! && /bin/false
 
 install:
 ifeq ($(platform),x)
-	install -D -m 755 out/bsnes $(DESTDIR)$(prefix)/bin/bsnes
-	install -D -m 644 data/bsnes.png $(DESTDIR)$(prefix)/share/pixmaps/bsnes.png
-	install -D -m 644 data/bsnes.desktop $(DESTDIR)$(prefix)/share/applications/bsnes.desktop
+	install -D -m 755 out/bsnes $(DESTDIR)$(PREFIX)/bin/bsnes
+	install -D -m 644 data/bsnes.png $(DESTDIR)$(PREFIX)/share/pixmaps/bsnes.png
+	install -D -m 644 data/bsnes.desktop $(DESTDIR)$(PREFIX)/share/applications/bsnes.desktop
 	test -d ~/.bsnes || mkdir ~/.bsnes
 	cp data/cheats.xml ~/.bsnes/cheats.xml
 	chmod 777 ~/.bsnes ~/.bsnes/cheats.xml
@@ -155,9 +193,9 @@ endif
 
 uninstall:
 ifeq ($(platform),x)
-	rm $(DESTDIR)$(prefix)/bin/bsnes
-	rm $(DESTDIR)$(prefix)/share/pixmaps/bsnes.png
-	rm $(DESTDIR)$(prefix)/share/applications/bsnes.desktop
+	rm $(DESTDIR)$(PREFIX)/bin/bsnes
+	rm $(DESTDIR)$(PREFIX)/share/pixmaps/bsnes.png
+	rm $(DESTDIR)$(PREFIX)/share/applications/bsnes.desktop
 endif
 
 clean: ui_clean
