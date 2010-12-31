@@ -6,6 +6,12 @@ add_command_line_enable()
    eval HAVE_$1=$3
 }
 
+add_command_line_string()
+{
+   COMMAND_LINE_OPTS_STRINGS="$COMMAND_LINE_OPTS_STRINGS:\"$1\" \"$2\" \"$3\":"
+   eval $1=$3
+}
+
 ## lvl. 43 regex dragon awaits thee.
 print_help()
 {
@@ -36,7 +42,17 @@ print_help()
       tmpopts="`echo $tmpopts | sed 's|^:"[^"]*"."[^"]*"."[^"]*":||'`"
       print_sub_opt "$subopts"
    done
-   
+
+   echo ""
+
+   tmpopts="$COMMAND_LINE_OPTS_STRINGS"
+   while [ ! -z "$tmpopts" ]
+   do
+      subopts="`echo $tmpopts | sed 's|^:"\([^"]*\)"."\([^"]*\)"."\([^"]*\)":.*$|"\1":"\2":"\3"|'`"
+      tmpopts="`echo $tmpopts | sed 's|^\W*$||'`"
+      tmpopts="`echo $tmpopts | sed 's|^:"[^"]*"."[^"]*"."[^"]*":||'`"
+      print_sub_str_opt "$subopts"
+   done
 }
 
 print_sub_opt()
@@ -58,6 +74,17 @@ print_sub_opt()
    fi
 }
 
+print_sub_str_opt()
+{
+   arg1="`echo $1 | sed 's|^"\([^"]*\)":"\([^"]*\)":"\([^"]*\)"$|\1|'`"
+   arg2="`echo $1 | sed 's|^"\([^"]*\)":"\([^"]*\)":"\([^"]*\)"$|\2|'`"
+   arg3="`echo $1 | sed 's|^"\([^"]*\)":"\([^"]*\)":"\([^"]*\)"$|\3|'`"
+
+   lowertext="`echo $arg1 | tr '[A-Z]' '[a-z]'`"
+
+   echo "--with-$lowertext: $arg2 (Defaults: $arg3)"
+}
+
 parse_input()
 {
    ### Parse stuff :V
@@ -76,15 +103,32 @@ parse_input()
 
          --enable-*)
             enable=`echo $1 | sed 's|^--enable-||'`
-            [ -z "`echo $COMMAND_LINE_OPTS_ENABLE | grep -i $enable`" ] && print_help && exit 1
+            if [ -z "`echo $COMMAND_LINE_OPTS_ENABLE | grep -i $enable`" ]; then
+               print_help
+               exit 1
+            fi
             eval HAVE_`echo $enable | tr '[a-z]' '[A-Z]'`=yes
             ;;
 
          --disable-*)
             disable=`echo $1 | sed 's|^--disable-||'`
-            [ -z "`echo $COMMAND_LINE_OPTS_ENABLE | grep -i $disable`" ] && print_help && exit 1
+            if [ -z "`echo $COMMAND_LINE_OPTS_ENABLE | grep -i $disable`" ]; then
+               print_help
+               exit 1
+            fi
             eval HAVE_`echo $disable | tr '[a-z]' '[A-Z]'`=no
             ;;
+
+         --with-*)
+            arg="`echo $1 | sed 's|^--with-\S\S*=||'`"
+            with=`echo $1 | sed 's|^--with-\(\S\S*\)=.*$|\1|'`
+            if [ -z "`echo $COMMAND_LINE_OPTS_STRINGS | grep -i $with`" ]; then
+               print_help
+               exit 1
+            fi
+            eval "`echo $with | tr '[a-z]' '[A-Z]'`=\"$arg\""
+            ;;
+
 
          -h|--help)
             print_help

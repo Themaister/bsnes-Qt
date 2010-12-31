@@ -7,7 +7,7 @@ ui := qt
 CC      += -std=gnu99
 CXX     += -std=gnu++0x
 flags   := -g -I.
-link    := -lsnes
+link    := $(libsnes)
 objects :=
 
 # platform

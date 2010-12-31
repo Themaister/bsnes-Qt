@@ -7,6 +7,7 @@ PACKAGE_VERSION=v073
 # $1: Variable (HAVE_ALSA, HAVE_OSS, etc)   
 # $2: Comment                 
 # $3: Default arg. auto implies that HAVE_ALSA will be set according to library checks later on.
+add_command_line_string LIBSNES "Path to libsnes library." "-lsnes"
 add_command_line_enable XV "Enable XVideo support" auto
 add_command_line_enable GLX "Enable OpenGL video support" auto
 add_command_line_enable ALSA "Enable ALSA support" auto
