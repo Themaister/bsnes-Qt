@@ -1,6 +1,5 @@
 #include "../ui-base.hpp"
 
-#include "profile.cpp"
 #include "video.cpp"
 #include "audio.cpp"
 #include "input.cpp"
@@ -22,17 +21,11 @@ SettingsWindow::SettingsWindow() {
   layout->setSpacing(Style::WidgetSpacing);
   setLayout(layout);
 
-  profileSettingsWindow  = new ProfileSettingsWindow;
   videoSettingsWindow    = new VideoSettingsWindow;
   audioSettingsWindow    = new AudioSettingsWindow;
   inputSettingsWindow    = new InputSettingsWindow;
   pathSettingsWindow     = new PathSettingsWindow;
   advancedSettingsWindow = new AdvancedSettingsWindow;
-
-  profileArea = new QScrollArea;
-  profileArea->setWidget(profileSettingsWindow);
-  profileArea->setFrameStyle(0);
-  profileArea->setWidgetResizable(true);
 
   videoArea = new QScrollArea;
   videoArea->setWidget(videoSettingsWindow);
@@ -60,7 +53,6 @@ SettingsWindow::SettingsWindow() {
   advancedArea->setWidgetResizable(true);
 
   tab = new QTabWidget;
-  tab->addTab(profileArea, "Profile");
   tab->addTab(videoArea, "Video");
   tab->addTab(audioArea, "Audio");
   tab->addTab(inputArea, "Input");

@@ -76,7 +76,6 @@ using namespace ruby;
 #include "movie/movie.hpp"
 
 #include "settings/settings.moc.hpp"
-#include "settings/profile.moc.hpp"
 #include "settings/video.moc.hpp"
 #include "settings/audio.moc.hpp"
 #include "settings/input.moc.hpp"
